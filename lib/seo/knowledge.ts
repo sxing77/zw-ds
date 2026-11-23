@@ -137,7 +137,9 @@ export function getAllKnowledgeRoutes() {
   for (const star of ALL_STARS) {
     for (const topic of ALL_TOPICS) {
       const data = getKnowledge(star, topic);
-      if (data.exists) routes.push({ star, slug: STAR_TO_SLUG[star], topic });
+      if (data.exists || (topic === 'overview' && STAR_BRIEF_SEO[star])) {
+        routes.push({ star, slug: STAR_TO_SLUG[star], topic });
+      }
     }
   }
   return routes;

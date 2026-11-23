@@ -93,7 +93,7 @@ export default function PreviewPage() {
             <span>·</span>
             <Link href="/chart" style={{ color: 'inherit', textDecoration: 'none' }}>命盘</Link>
             <span>·</span>
-            <Link href="/heming" style={{ color: 'inherit', textDecoration: 'none' }}>合盘</Link>
+            <Link href="/chart?mode=compatibility" style={{ color: 'inherit', textDecoration: 'none' }}>合盘</Link>
           </div>
 
           {/* 时间轴说明 */}

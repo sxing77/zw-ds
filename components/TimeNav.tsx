@@ -31,10 +31,10 @@ export function buildSiHuaOverlay(stemIndex: number): Record<string, string> {
 }
 
 const SIHUA_COLORS: Record<string, string> = {
-  '禄': '#4ade80',
-  '权': '#60a5fa',
-  '科': '#facc15',
-  '忌': '#f87171',
+  '禄': 'var(--lu)',
+  '权': 'var(--quan)',
+  '科': 'var(--ke)',
+  '忌': 'var(--ji)',
 };
 
 export default function TimeNav({
@@ -77,8 +77,8 @@ export default function TimeNav({
     <div className="mb-3">
       {/* Tab 行 */}
       <div
-        className="flex items-center rounded-xl p-1 gap-1"
-        style={{ background: 'var(--t-surface)', border: '1px solid var(--t-border)' }}
+        className="flex items-center gap-4 border-b pb-1"
+        style={{ borderColor: 'var(--t-border)' }}
       >
         {/* 本命 */}
         <TabButton
@@ -98,19 +98,15 @@ export default function TimeNav({
 
         {/* 流年 — 含年份切换 */}
         <div
-          className="relative flex-1 flex items-center justify-center rounded-lg py-1.5 gap-1 transition-all duration-200"
+          className="relative flex items-center gap-1 border-b-2 pb-1 pt-1 transition-colors"
           style={{
-            background: view === 'liunian'
-              ? 'rgba(212,168,67,0.12)'
-              : 'transparent',
-            border: view === 'liunian'
-              ? '1px solid rgba(212,168,67,0.25)'
-              : '1px solid transparent',
+            borderColor: view === 'liunian' ? 'var(--zw-accent, var(--t-gold))' : 'transparent',
           }}
         >
           <button
             onClick={() => onViewChange('liunian')}
-            className="text-[10px] font-medium flex-1 text-center"
+            aria-pressed={view === 'liunian'}
+            className="text-xs font-medium flex-1 text-center min-h-8"
             style={{ color: view === 'liunian' ? 'var(--t-gold)' : 'var(--t-faint)' }}
           >
             流年
@@ -118,22 +114,26 @@ export default function TimeNav({
           {/* 年份 +/- */}
           <div className="flex items-center gap-0.5">
             <button
+              aria-label="上一年"
               onClick={e => { e.stopPropagation(); onYearChange(liunianYear - 1); if (view !== 'liunian') onViewChange('liunian'); }}
-              className="text-[9px] w-4 h-4 flex items-center justify-center rounded"
+              className="text-sm w-8 h-8 flex items-center justify-center rounded"
               style={{ color: 'var(--t-faint)' }}
             >
               ‹
             </button>
-            <span
+            <button
+              type="button"
+              aria-label={liunianYear + '年流年'}
               className="text-[10px] font-mono min-w-[28px] text-center cursor-pointer"
               style={{ color: view === 'liunian' ? 'var(--t-gold)' : 'var(--t-faint)' }}
               onClick={() => onViewChange('liunian')}
             >
               {liunianYear}
-            </span>
+            </button>
             <button
+              aria-label="下一年"
               onClick={e => { e.stopPropagation(); onYearChange(liunianYear + 1); if (view !== 'liunian') onViewChange('liunian'); }}
-              className="text-[9px] w-4 h-4 flex items-center justify-center rounded"
+              className="text-sm w-8 h-8 flex items-center justify-center rounded"
               style={{ color: 'var(--t-faint)' }}
             >
               ›
@@ -180,11 +180,12 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className="flex-1 py-1.5 text-[10px] font-medium rounded-lg transition-all duration-200"
+      aria-pressed={active}
+      className="px-2 pb-1.5 pt-1 text-xs font-medium border-b-2 transition-colors"
       style={{
-        background: active ? 'rgba(212,168,67,0.12)' : 'transparent',
-        color: active ? 'var(--t-gold)' : 'var(--t-faint)',
-        border: active ? '1px solid rgba(212,168,67,0.25)' : '1px solid transparent',
+        borderColor: active ? 'var(--zw-accent, var(--t-gold))' : 'transparent',
+        color: active ? 'var(--zw-accent, var(--t-gold))' : 'var(--t-faint)',
+        fontWeight: active ? 700 : 500,
       }}
     >
       {children}

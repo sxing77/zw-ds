@@ -1,44 +1,44 @@
-import type { BirthFormState } from '@/components/BirthForm';
+import type { BirthCalendar, BirthFormState } from './birth-form';
 import type { BirthInfo } from './types';
+import { branchFromSolarMinutes, isValidGregorianDate, resolveZiweiDayOffset, shiftGregorianDate } from './true-solar-time';
+import { LUNAR_YEAR_MAX, LUNAR_YEAR_MIN, lunarToSolar } from './lunar-solar';
 
-/** 根据北京时间 + 经度计算真太阳时时辰支 (0-11) */
-export function calcTrueSolarBranch(clockHour: number, clockMinute: number, longitude: number): number {
-  const clockMins = clockHour * 60 + clockMinute;
-  const offset = (longitude - 120) * 4;
-  const solar = ((clockMins + offset) % 1440 + 1440) % 1440;
-  if (solar >= 1380 || solar < 60) return 0;
-  return Math.floor((solar - 60) / 120) + 1;
+export type { BirthCalendar } from './birth-form';
+
+export function formToSolarDate(form: Pick<BirthFormState, 'year' | 'month' | 'day' | 'calendar'>) {
+  if (!/^\d+$/.test(form.year) || !/^-?\d+$/.test(form.month) || !/^\d+$/.test(form.day)) return null;
+  const year = Number(form.year);
+  const month = Number(form.month);
+  const day = Number(form.day);
+  if (year < LUNAR_YEAR_MIN || year > LUNAR_YEAR_MAX) return null;
+  if (form.calendar === 'lunar') {
+    const date = lunarToSolar(year, Math.abs(month), day, month < 0);
+    return date && date.year <= LUNAR_YEAR_MAX && date.year >= LUNAR_YEAR_MIN ? date : null;
+  }
+  return isValidGregorianDate(year, month, day) ? { year, month, day } : null;
 }
 
-/** BirthFormState → BirthInfo
- *
- * 子时规则（倪海厦体系/三合派标准）：
- * · 23:00-23:59 = 晚子时，**按次日**排盘（日期 +1）
- * · 00:00-00:59 = 早子时，按本日排盘
- * 这与「时辰支同为子(0)」并不冲突——子时分早晚两段，需要在日期上区分。
- */
+function longitudeClock(clockHour: number, clockMinute: number, longitude: number, utcOffsetMinutes = 480) {
+  const standardMeridian = (utcOffsetMinutes / 60) * 15;
+  const minutes = clockHour * 60 + clockMinute + (longitude - standardMeridian) * 4;
+  const dayOffset = Math.floor(minutes / 1440);
+  const normalizedMinutes = minutes - dayOffset * 1440;
+  return { dayOffset, normalizedMinutes, branch: branchFromSolarMinutes(normalizedMinutes) };
+}
+
+/** 当地标准时间经经度修正后的时辰支 (0–11)。 */
+export function calcTrueSolarBranch(clockHour: number, clockMinute: number, longitude: number, utcOffsetMinutes = 480): number {
+  return longitudeClock(clockHour, clockMinute, longitude, utcOffsetMinutes).branch;
+}
+
+/** 晚子时按次日排盘。日期和时辰统一按同一个经度修正后的时钟推导。 */
 export function formToBirthInfo(form: BirthFormState): BirthInfo {
-  let y = parseInt(form.year) || 0;
-  let m = parseInt(form.month) || 0;
-  let d = parseInt(form.day) || 0;
-
-  // 晚子时（23:00-23:59）按次日处理：用 Date 对象自动处理月末/年末进位
-  if (!form.unknownTime) {
-    const clockHour = parseInt(form.clockHour) || 0;
-    if (clockHour === 23 && y > 0 && m > 0 && d > 0) {
-      const next = new Date(y, m - 1, d + 1);
-      y = next.getFullYear();
-      m = next.getMonth() + 1;
-      d = next.getDate();
-    }
-  }
-
-  const hour = form.unknownTime
-    ? 0
-    : calcTrueSolarBranch(parseInt(form.clockHour) || 0, parseInt(form.clockMinute) || 0, form.longitude);
+  const date = formToSolarDate(form);
+  if (!date) throw new RangeError(form.calendar === 'lunar' ? '农历出生日期不存在或超出支持范围。' : '公历出生日期不存在或超出支持范围。');
+  const solar = form.unknownTime ? null : longitudeClock(Number(form.clockHour), Number(form.clockMinute), form.longitude, form.utcOffsetMinutes ?? 480);
   return {
-    year: y, month: m, day: d,
-    hour,
+    ...(solar ? shiftGregorianDate(date, resolveZiweiDayOffset(solar)) : date),
+    hour: solar?.branch ?? 0,
     gender: form.gender,
     name: form.name || undefined,
     province: form.province || undefined,
@@ -54,6 +54,7 @@ export function formToSearchParams(form: BirthFormState): URLSearchParams {
   p.set('y', form.year);
   p.set('m', form.month);
   p.set('d', form.day);
+  if (form.calendar === 'lunar') p.set('cal', 'lunar');
   if (form.unknownTime) {
     p.set('u', '1');
   } else {
@@ -62,28 +63,41 @@ export function formToSearchParams(form: BirthFormState): URLSearchParams {
   }
   if (form.province) p.set('p', form.province);
   if (form.city) p.set('c', form.city);
-  if (form.longitude && form.longitude !== 120) p.set('lo', String(form.longitude));
+  if (form.longitude !== 120) p.set('lo', String(form.longitude));
+  if (form.utcOffsetMinutes !== undefined && form.utcOffsetMinutes !== 480) p.set('tz', String(form.utcOffsetMinutes));
   p.set('g', form.gender === 'male' ? 'm' : 'f');
   return p;
 }
 
-/** URLSearchParams → Partial<BirthFormState>，不完整时返回 null */
-export function searchParamsToForm(params: URLSearchParams): Partial<BirthFormState> | null {
+/** 从分享链接恢复有效的出生资料。 */
+export function searchParamsToForm(params: URLSearchParams): BirthFormState | null {
   const year = params.get('y');
   const month = params.get('m');
   const day = params.get('d');
-  if (!year || !month || !day) return null;
+  const calendar = params.get('cal');
+  if (calendar !== null && calendar !== 'solar' && calendar !== 'lunar') return null;
+  if (!year || !month || !day || !formToSolarDate({ year, month, day, calendar: calendar ?? undefined })) return null;
+  const clockHour = params.get('h') || '8';
+  const clockMinute = params.get('mi') || '0';
+  const longitude = Number(params.get('lo') || '120');
+  const tzRaw = params.get('tz');
+  const utcOffsetMinutes = tzRaw !== null && /^-?\d+$/.test(tzRaw) ? Number(tzRaw) : undefined;
+  if (!/^\d{1,2}$/.test(clockHour) || Number(clockHour) > 23 ||
+      !/^\d{1,2}$/.test(clockMinute) || Number(clockMinute) > 59 ||
+      !Number.isFinite(longitude) || Math.abs(longitude) > 180) return null;
   return {
-    name: params.get('n') || '',
-    year,
-    month,
-    day,
+    name: (params.get('n') || '').slice(0, 40),
+    year: String(Number(year)),
+    month: String(Number(month)),
+    day: String(Number(day)),
+    ...(calendar === 'lunar' ? { calendar } : {}),
     unknownTime: params.get('u') === '1',
-    clockHour: params.get('h') || '8',
-    clockMinute: params.get('mi') || '0',
+    clockHour: String(Number(clockHour)),
+    clockMinute: String(Number(clockMinute)),
     province: params.get('p') || '',
     city: params.get('c') || '',
-    longitude: parseFloat(params.get('lo') || '120'),
+    longitude,
+    ...(utcOffsetMinutes !== undefined ? { utcOffsetMinutes } : {}),
     gender: params.get('g') === 'f' ? 'female' : 'male',
   };
 }

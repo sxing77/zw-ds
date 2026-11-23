@@ -55,6 +55,8 @@ const config: Config = {
         "fade-up": "fadeUp 0.5s ease forwards",
         "fade-in": "fadeIn 0.4s ease forwards",
         "spin-slow": "spin 20s linear infinite",
+        "accordion-down": "accordionDown 0.22s ease-out",
+        "accordion-up": "accordionUp 0.2s ease-out",
       },
       keyframes: {
         fadeUp: {
@@ -64,6 +66,14 @@ const config: Config = {
         fadeIn: {
           "0%":   { opacity: "0" },
           "100%": { opacity: "1" },
+        },
+        accordionDown: {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        accordionUp: {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
     },

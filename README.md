@@ -278,7 +278,7 @@ cd ziwei-doushu
 # 安装依赖
 npm install
 
-# 配置环境变量（只看排盘可以跳过；AI 配置仅在你自己实现了 /api/* 接口时才用得上）
+# 配置环境变量（可选：只用排盘 / 古籍 / 知识库可以跳过；要 AI 解读则填一个模型密钥）
 cp .env.example .env.local
 
 # 启动开发服务器
@@ -294,7 +294,43 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 每次 push 与 PR 都会在 GitHub Actions 上跑同一套（见 [`.github/workflows/ci.yml`](./.github/workflows/ci.yml)）。
 
-> **注意：开源版不含后端 API 路由。**排盘、命盘展示、合盘起盘都在浏览器里用本仓库的引擎完成，**不需要任何 API Key**。AI 解读（`/api/interpret`）和合盘 AI 分析（`/api/heming`）需要你自己实现接口；没实现之前，这两处会直接提示「开源版不含该接口」，配置 API Key 也不会变成可用（#30 就是这个原因）。
+> **注意：排盘不需要任何 API Key，AI 解读需要。**单盘排盘与展示可在浏览器完成。紫微合盘由服务端按双方出生资料重新排盘，AI 解读走服务端路由，需要你自己填一个模型密钥（OpenAI 兼容协议，DeepSeek / Gemini / OpenAI / 自建网关都行）；不填时页面会提示「模型未配置」，排盘功能不受影响。
+
+### 3.1 AI 解读接口
+
+引擎先把星曜、亮度、四化落宫、格局命中、杀星定位全部算准，再把结果序列化进 prompt —— 模型只负责「把算好的东西讲清楚」，不重新排盘。所以 prompt 的准确性取决于引擎，换模型不影响排盘口径。
+
+| 路由 | 入参 | 用途 |
+|---|---|---|
+| `POST /api/interpret` | `{ chart, messages }` | 单盘解读：命格、感情、事业、财运、健康等维度追问 |
+| `POST /api/heming` | `{ birthA, birthB, question?, previous? }` | 双盘合盘：双方出生资料各含 `year, month, day, hour, gender`（排盘日、时辰索引 0–11）。叠宫、主星对应和生年四化由代码计算，文字解读由模型生成。 |
+
+两者都返回 Server-Sent Events，每帧形如 `data: {"delta":{"text":"…"}}`，以 `data: [DONE]` 结束，前端 `InsightPanel` / `ChatPanel` / `/heming` 已经按这个契约解析。
+
+| 文件 | 职责 |
+|---|---|
+| `lib/ai/prompts.ts` | prompt 组装：断法铁律、13 维宫位定位、格局注入、合盘方法论 |
+| `lib/ai/chart-context.ts` | 命盘序列化：12 宫压成一行式、四化落宫、六煞定位脏腑 |
+| `lib/ai/provider.ts` | OpenAI 兼容流式接入，DeepSeek / Gemini / OpenAI / custom 可切 |
+| `lib/ai/sse.ts` | SSE 帧编码 |
+| `lib/ai/validate.ts` | chart 结构深度校验，畸形输入直接 400 |
+
+想换一家模型或改断法口径，改 `lib/ai/provider.ts` 与 `lib/ai/prompts.ts` 即可，前端不用动。
+
+### 3.2 接上 13 维解读数据集（事实底座）
+
+只靠模型从星曜推演，断语质量取决于模型水平。接上 v4.0 数据集后是另一套逻辑：**断语库先把结论给准，模型只负责转述与追问。**
+
+```bash
+# 1. 从 Release v4.0-13d 下载并解压 year-YYYY.jsonl 到任意目录
+# 2. 在 .env.local 里指向它
+echo 'ZIWEI_DATASET_DIR=G:\紫微斗数解读参数集' >> .env.local
+
+# 3. 建偏移索引（每年约 35 KB，77 个年份几分钟跑完）
+npx tsx scripts/build-dataset-index.ts --all
+```
+
+之后每次解读：引擎排出命盘 → 拼出 `YYYY-MM-DD-时辰-性别` 键 → 查表拿该维度的断语原文（单维 1.4–3.3 千字）→ 作为「已核对断语」注入 prompt。
 
 ---
 
@@ -372,9 +408,9 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 | 宫位格 `PalaceCell` | 201 行 | 1192 行 |
 | 合盘页 `app/heming/page.tsx` | 368 行 | 1937 行 |
 
-**Demo 能跑通的**：出生信息表单、命盘方格与宫位详情、本命 / 大限 / 流年切换、古籍阅读器（全文搜索）、命理百科（14 主星 × 12 宫位）、亮暗主题、移动端适配。
+**Demo 能跑通的**：出生信息表单、命盘方格与宫位详情、本命 / 大限 / 流年切换、古籍阅读器（全文搜索）、命理百科（14 主星 × 12 宫位）、亮暗主题、移动端适配，以及**AI 流式解读与合盘分析**（配好模型密钥后，见 [3.1](#31-ai-解读接口)）。
 
-**Demo 里没有的**：线上重做过的交互界面、AI 流式解读、合盘图谱、分享卡片，以及**断语内容本身**（`db-analysis.ts` 是占位实现）。也就是说，Demo 画得出盘，但给不出线上那套解读。
+**Demo 里没有的**：线上重做过的交互界面、合盘图谱、分享卡片，以及**预置断语内容本身**（`db-analysis.ts` 是占位实现）。也就是说，Demo 画得出盘、也能让模型基于引擎输出讲盘，但没有线上那套上万行的固定断语库。
 
 ---
 
@@ -382,10 +418,10 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 | | 内容 |
 |---|---|
-| ✅ **开源** | 排盘引擎（`lib/ziwei/`）、古籍公版原文（`lib/classics/`）、SEO 知识图谱（`lib/seo/`）、Demo 界面、51.8 万样本数据集、13 维解读数据集 v4.0 |
-| ❌ **不开源** | 断语库（`lib/ziwei/db-analysis.ts` 是占位，线上是上万行的 13 主题断语）、AI 解读 prompt、后端 API（`/api/interpret` 等）、用户系统（登录 / 会员 / 支付）、服务端安全（签名、防刷、水印）、部署配置 |
+| ✅ **开源** | 排盘引擎（`lib/ziwei/`）、古籍公版原文（`lib/classics/`）、SEO 知识图谱（`lib/seo/`）、Demo 界面、AI 解读接口与 prompt（`lib/ai/` + `app/api/`）、51.8 万样本数据集、13 维解读数据集 v4.0 |
+| ❌ **不开源** | 断语库（`lib/ziwei/db-analysis.ts` 是占位，线上是上万行的 13 主题断语）、线上商业版那套经过长期调优的 AI prompt、用户系统（登录 / 会员 / 支付）、服务端安全（签名、防刷、水印）、部署配置 |
 
-如果你需要 AI 解读能力，可以参考 `lib/ziwei/patterns.ts` 和 `heming-knowledge.ts` 里的知识库，结合任意 LLM 自行构建 prompt。
+`lib/ai/` 是一套**可独立运行的基础实现**：把引擎算好的结论序列化进 prompt，再交给任意 OpenAI 兼容模型。它足够跑通完整链路，但与线上商业版长期调优过的 prompt 不是同一份 —— 想要更深的解读，按自己的断法口径改 `lib/ai/prompts.ts` 就行，知识库可参考 `lib/ziwei/patterns.ts` 和 `heming-knowledge.ts`。
 
 ---
 
@@ -393,7 +429,7 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 
 这个仓库是**排盘引擎 + 数据集的开放快照**，不是一个全职维护的开源产品，说清楚免得大家猜：
 
-- **引擎同步**：随线上发版同步 `lib/ziwei/` 的引擎层并打 tag；断语库、AI 解读、商业站前端不在同步范围内。
+- **引擎同步**：随线上发版同步 `lib/ziwei/` 的引擎层并打 tag；断语库、线上商业版 AI prompt、商业站前端不在同步范围内。`lib/ai/` 是本仓库自带的基础实现，按仓库自身节奏维护。
 - **Issue**：会看，但回复可能不及时；带复现步骤或具体盘例（年月日时 + 性别 + 哪一条不对）的问题优先处理。
 - **PR**：欢迎，尤其是回归测试、口径修正、文档。动到排盘口径的改动请附上依据（古籍原文或可核对的对照）。
 
@@ -426,6 +462,7 @@ npm test            # 排盘引擎回归（768 盘 × 紫微铁律、夏令时�
 - **语言**：TypeScript
 - **样式**：Tailwind CSS + CSS Variables 设计系统
 - **排盘**：基于 [iztro](https://github.com/SylarLong/iztro) + lunar-javascript
+- **AI**：OpenAI 兼容流式接口（DeepSeek / Gemini / OpenAI / 自建网关任一），SSE 输出到浏览器
 - **动画**：Framer Motion
 
 ### 联系

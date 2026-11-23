@@ -34,7 +34,7 @@ const ZHIWEI_LAYOUT: Array<{ branch: number; row: number; col: number }> = [
 
 interface ShareCardProps {
   chart: ZiweiChart;
-  birth: { year: string; month: string; day: string; hour: string; minute: string; gender: 'male' | 'female'; city?: string };
+  birth: { year: string; month: string; day: string; hour: string; minute: string; timeUnknown?: boolean; gender: 'male' | 'female'; city?: string };
   highlight?: string;
 }
 
@@ -98,7 +98,7 @@ export default function ShareCardCanvas({ chart, birth, highlight }: ShareCardPr
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
           <div style={{ fontSize: '10px', color: '#6b5d3f', letterSpacing: '0.05em' }}>
-            {birth.year}年{birth.month}月{birth.day}日 · {birth.hour.padStart(2,'0')}:{birth.minute.padStart(2,'0')}
+            {birth.year}年{birth.month}月{birth.day}日 · {birth.timeUnknown ? '时辰不详' : birth.hour.padStart(2, '0') + ':' + birth.minute.padStart(2, '0')}
             <span style={{ margin: '0 4px', color: '#b8922a' }}>·</span>
             {birth.gender === 'male' ? '男命' : '女命'}
             {birth.city && <><span style={{ margin: '0 4px', color: '#b8922a' }}>·</span>{birth.city}</>}
@@ -258,7 +258,7 @@ export default function ShareCardCanvas({ chart, birth, highlight }: ShareCardPr
                 紫微为门 · 天地人为路
               </div>
               <div style={{ fontSize: '10px', color: '#8b6a14', fontWeight: 600, letterSpacing: '0.08em', lineHeight: 1.4, marginTop: '2px' }}>
-                倪海厦为师 · AI 答疑伴学
+                倪海厦为师 · 命盘详解与追问
               </div>
               <div style={{ fontSize: '8px', color: '#a89b7c', letterSpacing: '0.15em', marginTop: '4px' }}>
                 扫码起你的命盘 →

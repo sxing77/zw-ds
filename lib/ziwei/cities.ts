@@ -1,6 +1,8 @@
 export interface CityInfo {
   name: string;
-  longitude: number; // degrees East
+  longitude: number; // degrees East (west is negative)
+  /** 当地标准时区相对 UTC 的偏移（分钟，东正西负），不填默认 480（东八区 UTC+8） */
+  utcOffsetMinutes?: number;
 }
 
 export interface ProvinceInfo {
@@ -699,6 +701,52 @@ export const PROVINCES: ProvinceInfo[] = [
     ],
   },
 
-  // 注：海外出生暂未支持，因 share.ts 真太阳时算法假设输入为北京时间(UTC+8)。
-  // 海外用户请把当地时间换算成北京时间再填写（或填出生时所在的中国时区相对城市）。
+  // ─── 海外华人主要聚居城市（按当地标准时区 + 经度校正真太阳时）────
+  {
+    name: '海外 · 东南亚',
+    cities: [
+      { name: '新加坡', longitude: 103.85, utcOffsetMinutes: 480 },
+      { name: '吉隆坡（马来西亚）', longitude: 101.69, utcOffsetMinutes: 480 },
+      { name: '槟城（马来西亚）', longitude: 100.33, utcOffsetMinutes: 480 },
+      { name: '新山（马来西亚）', longitude: 103.74, utcOffsetMinutes: 480 },
+      { name: '古晋（马来西亚）', longitude: 110.35, utcOffsetMinutes: 480 },
+      { name: '曼谷（泰国）', longitude: 100.5, utcOffsetMinutes: 420 },
+      { name: '雅加达（印尼）', longitude: 106.85, utcOffsetMinutes: 420 },
+      { name: '马尼拉（菲律宾）', longitude: 120.98, utcOffsetMinutes: 480 },
+      { name: '胡志明市（越南）', longitude: 106.63, utcOffsetMinutes: 420 },
+    ],
+  },
+  {
+    name: '海外 · 日韩',
+    cities: [
+      { name: '东京（日本）', longitude: 139.69, utcOffsetMinutes: 540 },
+      { name: '大阪（日本）', longitude: 135.5, utcOffsetMinutes: 540 },
+      { name: '首尔（韩国）', longitude: 126.98, utcOffsetMinutes: 540 },
+    ],
+  },
+  {
+    name: '海外 · 北美',
+    cities: [
+      { name: '温哥华（加西 UTC-8）', longitude: -123.12, utcOffsetMinutes: -480 },
+      { name: '多伦多（加东 UTC-5）', longitude: -79.38, utcOffsetMinutes: -300 },
+      { name: '纽约（美东 UTC-5）', longitude: -74.01, utcOffsetMinutes: -300 },
+      { name: '波士顿（美东 UTC-5）', longitude: -71.06, utcOffsetMinutes: -300 },
+      { name: '芝加哥（美中 UTC-6）', longitude: -87.63, utcOffsetMinutes: -360 },
+      { name: '休斯顿（美中 UTC-6）', longitude: -95.37, utcOffsetMinutes: -360 },
+      { name: '旧金山（美西 UTC-8）', longitude: -122.42, utcOffsetMinutes: -480 },
+      { name: '洛杉矶（美西 UTC-8）', longitude: -118.24, utcOffsetMinutes: -480 },
+      { name: '西雅图（美西 UTC-8）', longitude: -122.33, utcOffsetMinutes: -480 },
+    ],
+  },
+  {
+    name: '海外 · 欧洲与大洋洲',
+    cities: [
+      { name: '伦敦（英国 UTC+0）', longitude: -0.13, utcOffsetMinutes: 0 },
+      { name: '巴黎（法国 UTC+1）', longitude: 2.35, utcOffsetMinutes: 60 },
+      { name: '法兰克福（德国 UTC+1）', longitude: 8.68, utcOffsetMinutes: 60 },
+      { name: '悉尼（澳东 UTC+10）', longitude: 151.21, utcOffsetMinutes: 600 },
+      { name: '墨尔本（澳东 UTC+10）', longitude: 144.96, utcOffsetMinutes: 600 },
+      { name: '奥克兰（新西兰 UTC+12）', longitude: 174.76, utcOffsetMinutes: 720 },
+    ],
+  },
 ];

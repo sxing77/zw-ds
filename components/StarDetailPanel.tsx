@@ -1,7 +1,7 @@
 'use client';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { Star } from '@/lib/ziwei/types';
 import { STAR_DESCRIPTIONS } from '@/lib/ziwei/constants';
+import { Dialog, DialogContent, DialogTitle } from './ui/Dialog';
 
 interface StarDetailPanelProps {
   star: Star | null;
@@ -182,19 +182,17 @@ export default function StarDetailPanel({ star, palaceName, onClose }: StarDetai
   const typeConfig = star ? levelConfig[star.type] : null;
 
   return (
-    <AnimatePresence>
+    <Dialog open={Boolean(star)} onOpenChange={open => { if (!open) onClose(); }}>
       {star && (
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.2 }}
-          className="card-glass rounded-xl overflow-hidden"
+        <DialogContent
+          aria-describedby={undefined}
+          className="card-glass max-w-xl overflow-hidden p-0"
+          style={{ maxHeight: '90dvh' }}
         >
           {/* 标题栏 */}
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--t-border)' }}>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold" style={{ color: 'var(--t-gold)' }}>{star.name}</span>
+              <DialogTitle className="text-xl" style={{ color: 'var(--t-gold)' }}>{star.name}</DialogTitle>
               {typeConfig && (
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${typeConfig.color}`}>
                   {typeConfig.label}
@@ -206,10 +204,9 @@ export default function StarDetailPanel({ star, palaceName, onClose }: StarDetai
                 </span>
               )}
             </div>
-            <button onClick={onClose} className="transition-colors text-lg leading-none" style={{ color: 'var(--t-faint)' }}>×</button>
           </div>
 
-          <div className="p-4 space-y-4 overflow-y-auto max-h-[560px]">
+          <div className="p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'min(560px, calc(90dvh - 64px))' }}>
             {/* 基本信息 */}
             {desc && (
               <div className="flex flex-wrap gap-1.5">
@@ -325,8 +322,8 @@ export default function StarDetailPanel({ star, palaceName, onClose }: StarDetai
               </div>
             )}
           </div>
-        </motion.div>
+        </DialogContent>
       )}
-    </AnimatePresence>
+    </Dialog>
   );
 }

@@ -72,11 +72,37 @@ npm run typecheck    # TypeScript check
 npm test             # charting regression tests
 ```
 
-**No API key is needed for charting.** The open-source version contains **no backend routes**: AI interpretation (`/api/interpret`) and compatibility analysis (`/api/heming`) return 404 until you implement them yourself.
+**No API key is needed for charting.** Single charts can be cast and displayed in the browser. The compatibility endpoint casts both charts on the server. AI interpretation uses server routes and needs one model API key (any OpenAI-compatible provider: DeepSeek, Gemini, OpenAI, or your own gateway); with no key configured the page shows "model not configured" and charting keeps working.
+
+### AI routes
+
+The engine computes the stars, brightness, Four Transformations, matched patterns, and sha-star placement first, then serializes the result into the prompt — the model only explains what has already been computed, it never re-casts the chart.
+
+| Route | Body | Purpose |
+|---|---|---|
+| `POST /api/interpret` | `{ chart, messages }` | Single chart: personality, love, career, wealth, health, with follow-up questions |
+| `POST /api/heming` | `{ birthA, birthB, question?, previous? }` | Each birth input contains `year, month, day, hour, gender` (chart date and hour branch 0–11). The engine computes palace overlays, star matches and transformations for the AI reading. |
+
+Both stream Server-Sent Events as `data: {"delta":{"text":"…"}}`, ending with `data: [DONE]`. `InsightPanel`, `ChatPanel`, and `/heming` already consume this contract. Prompt and provider code live in `lib/ai/` — swap the model or the reading rules there; the frontend needs no change.
+
+### Wiring in the interpretation dataset (fact base)
+
+Relying on the model alone means reading quality tracks model quality. With the v4.0 dataset wired in, the logic inverts: **the interpretation library supplies the vetted conclusions, and the model only restates and answers follow-ups.**
+
+```bash
+# 1. Download and decompress year-YYYY.jsonl from Release v4.0-13d into any directory
+# 2. Point to it in .env.local
+echo 'ZIWEI_DATASET_DIR=G:\紫微斗数解读参数集' >> .env.local
+
+# 3. Build the byte-offset index (~35 KB per year, a few minutes for all 77)
+npx tsx scripts/build-dataset-index.ts --all
+```
+
+Each request then: engine casts the chart → builds the `YYYY-MM-DD-hour-gender` key → looks up the reading for that topic (1.4–3.3 K characters per topic) → injects it into the prompt as "vetted reading". If the index or the year is missing, the route silently falls back to the engine-only path.
 
 ## What is not included
 
-The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), AI prompts, all `/api/*` backend routes, user accounts, payments, and deployment configuration.
+The interpretation database (`lib/ziwei/db-analysis.ts` is a placeholder), the production-tuned AI prompts behind the commercial site, user accounts, payments, and deployment configuration. The AI routes and prompts in `lib/ai/` + `app/api/` **are** open source — they are a working baseline, not the tuned production set.
 
 ## Interpretation dataset v4.0 (674,976 charts × 13 topics, 2026-10-15)
 

@@ -1,0 +1,140 @@
+.form {
+  --field-bg: var(--zw-input, var(--bg-0));
+  --field-border: var(--zw-line, var(--bdr-heavy));
+  --field-text: var(--zw-ink, var(--tx-0));
+  --field-muted: var(--zw-muted, var(--tx-2));
+  --field-accent: var(--zw-accent, var(--ac-dim));
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  color: var(--field-text);
+}
+
+.fieldset {
+  min-width: 0;
+}
+
+.profileControls { min-width: 0; }
+.profileRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+.profileRow button, .profileLogin {
+  min-height: 44px;
+  padding-inline: 10px;
+  border: 1px solid var(--field-border);
+  border-radius: 7px;
+  background: var(--field-bg);
+  color: var(--field-accent);
+  font-size: 13px;
+  font-weight: 650;
+}
+.profileActions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 4px; }
+.profileActions button { min-height: 32px; color: var(--field-accent); font-size: 13px; }
+.profileActions button:hover:not(:disabled) { text-decoration: underline; }
+
+.fieldset legend,
+.optional summary {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.form small {
+  margin-inline-start: 5px;
+  color: var(--field-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.dateGrid, .pair {
+  display: grid;
+  gap: 8px;
+}
+
+.dateGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  margin-bottom: 8px;
+  padding: 3px;
+  border: 1px solid var(--field-border);
+  border-radius: 2px;
+  background: var(--zw-soft, var(--bg-1));
+}
+.calendar button {
+  min-height: 36px;
+  border-radius: 2px;
+  color: var(--field-muted);
+  font-size: 13px;
+}
+.calendar button[aria-pressed='true'] {
+  background: var(--field-bg);
+  color: var(--field-accent);
+  font-weight: 700;
+}
+
+.form :is(select, input[type='text'], .radio) {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--field-border);
+  border-radius: 2px;
+  background: var(--field-bg);
+  color: var(--field-text);
+  font-size: 14px;
+}
+
+.form :is(select, input[type='text']) { padding: 0 9px; }
+.form :is(select:disabled, button:disabled) { opacity: .55; }
+.form select[aria-invalid='true'] { border-color: var(--field-accent); }
+
+.form :is(input, select, button, summary):focus-visible,
+.radio:has(:focus-visible) {
+  outline: 2px solid var(--field-accent);
+  outline-offset: 2px;
+}
+
+.radio, .check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.radio { justify-content: center; }
+.radio:has(:checked) { border-color: var(--field-accent); color: var(--field-accent); }
+.form :is(input[type='radio'], input[type='checkbox']) { accent-color: var(--field-accent); }
+
+.check, .hint, .error {
+  margin-top: 5px;
+  color: var(--field-muted);
+  font-size: 12px;
+}
+
+.check { min-height: 26px; }
+.error { color: var(--field-accent); }
+.optional summary { width: fit-content; margin-bottom: 0; cursor: pointer; }
+.optional[open] summary { margin-bottom: 8px; }
+
+.submit {
+  min-height: 48px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  background: var(--zw-button, #8c352b);
+  color: #fffaf1;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.submit span { margin-inline-start: 5px; }
+.submit:hover:not(:disabled) { filter: brightness(1.12); }
+
+@media (max-width: 560px) {
+  .form :is(select, input[type='text']) { font-size: 16px; }
+}

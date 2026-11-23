@@ -15,7 +15,8 @@
  * ⚠️ 这里**不许**出现排盘 / 时辰 / 真太阳时 / 四化 任何一行。
  *    那些属于 lib/ziwei/algorithm.ts 与 /api/generate，别顺手塞进来。
  */
-import { Lunar, LunarMonth } from 'lunar-javascript';
+import { Lunar, LunarMonth, Solar } from 'lunar-javascript';
+import { isValidGregorianDate } from './true-solar-time';
 
 export interface SolarDate {
   year: number;
@@ -76,4 +77,13 @@ export function lunarToSolar(year: number, month: number, day: number, isLeapMon
   } catch {
     return null;
   }
+}
+
+/** 转为农历；负月份表示闰月。 */
+export function solarToLunar(year: number, month: number, day: number): SolarDate | null {
+  if (!isIntInRange(year, LUNAR_YEAR_MIN, LUNAR_YEAR_MAX) || !isValidGregorianDate(year, month, day)) return null;
+  const lunar = Solar.fromYmd(year, month, day).getLunar();
+  const lunarYear = lunar.getYear();
+  if (!isIntInRange(lunarYear, LUNAR_YEAR_MIN, LUNAR_YEAR_MAX)) return null;
+  return { year: lunarYear, month: lunar.getMonth(), day: lunar.getDay() };
 }

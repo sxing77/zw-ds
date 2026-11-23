@@ -137,6 +137,16 @@ body {
   border-radius: var(--r-md);
   box-shadow: var(--sh-sm);
 }
+.card-glass {
+  background: var(--t-bg, var(--bg-card));
+  border: 1px solid var(--t-border, var(--bdr));
+  border-radius: var(--r-md);
+}
+.card-inner {
+  background: var(--t-card, var(--bg-1));
+  border: 1px solid var(--t-border, var(--bdr));
+  border-radius: var(--r-sm);
+}
 .card-flat {
   background: var(--bg-card);
   border: 1px solid var(--bdr);
