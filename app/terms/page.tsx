@@ -41,8 +41,22 @@ export default function TermsPage() {
       <p>本条款适用中华人民共和国法律。若发生争议，双方应友好协商；协商不成的，提交本平台运营主体所在地有管辖权的人民法院诉讼解决。</p>
 
       <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>7. 报告购买与售后</h2>
-      <p>合盘报告按份购买，价格与内容以结账页为准。付款确认后，在「我的报告」生成和查看正文。若生成失败，可以用同一笔订单重试。订单页提供查单协助与退款的联系方式。</p>
+      <p>个人命盘详批与双人合盘报告均按份购买，价格与内容以结账页为准。付款确认后，可在「我的报告」生成和永久回看正文。若生成失败，可以用同一笔订单重试。订单页提供查单协助与退款的联系方式。</p>
       {process.env.COMMERCE_SUPPORT_EMAIL && <p>售后邮箱 <a href={'mailto:' + process.env.COMMERCE_SUPPORT_EMAIL}>{process.env.COMMERCE_SUPPORT_EMAIL}</a></p>}
+
+      <h2 style={{ fontSize: 18, marginTop: 32, marginBottom: 12 }}>8. 开源与数据来源声明</h2>
+      <p style={{ fontSize: 13, color: 'var(--tx-2)' }}>
+        本平台部分紫微斗数排盘算法与参考数据基于开源项目{' '}
+        <a
+          href="https://github.com/Renhuai123/ziwei-doushu"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'var(--ac)', textDecoration: 'underline' }}
+        >
+          ziwei-doushu
+        </a>
+        （MIT / CC BY 4.0），所收录明刊古籍原文属公有领域。
+      </p>
 
         <p style={{ marginTop: 48, fontSize: 12, color: 'var(--tx-3)' }}>
           <a href="/privacy" style={{ color: 'var(--ac)' }}>隐私政策</a> · <a href="/" style={{ color: 'var(--ac)' }}>返回首页</a>
