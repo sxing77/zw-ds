@@ -1,6 +1,7 @@
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { streamChat } from '@/lib/ai/provider';
+import { chartKey, lookupChart, type DatasetDimension } from '@/lib/ai/dataset';
 import { buildHemingDatasetContext } from '@/lib/ai/heming-dataset';
 import { generateChart } from '@/lib/ziwei/algorithm';
 import { BRANCHES } from '@/lib/ziwei/constants';
@@ -18,6 +19,43 @@ function chartFacts(a: ReturnType<typeof generateChart>, b: ReturnType<typeof ge
     borrowedFrom: palace.borrowedFromName,
   })));
   return { ...compareHeming(a, b), placements };
+}
+
+function hasDatasetConfigured() {
+  return Boolean(process.env.ZIWEI_DATASET_R2_URL || process.env.ZIWEI_DATASET_PACK_DIR || process.env.ZIWEI_DATASET_DIR);
+}
+
+const ziweiReportThemes = [
+  ['overview', '命格总览'],
+  ['career', '事业官禄'],
+  ['wealth', '财帛田宅'],
+  ['love', '感情婚姻'],
+  ['personality', '性格特质'],
+] as const satisfies ReadonlyArray<readonly [DatasetDimension, string]>;
+
+async function buildZiweiDatasetContext(chart: ReturnType<typeof generateChart>) {
+  if (!hasDatasetConfigured()) return '';
+  try {
+    const key = chartKey(chart);
+    const row = key ? await lookupChart(key) : null;
+    if (!row) return '';
+    const life = chart.palaces.find(p => p.branch === chart.mingGongBranch);
+    const firstMajor = life?.stars.find(s => s.type === 'major')?.name ?? null;
+    if (!life || row.ms !== firstMajor) return '';
+    const excerpts = ziweiReportThemes.flatMap(([dim, title]) => {
+      const text = row.c?.[dim];
+      if (typeof text !== 'string' || !text.trim()) return [];
+      return [`### ${title}\n${text.trim().slice(0, 1_100)}`];
+    });
+    if (!excerpts.length) return '';
+    return [
+      '## 可参考的本命语料底座（来自 R2 / 本地已核对语料库）',
+      '以下为该命盘对应的多维参考断语，请结合本次引擎事实整合重述；若与引擎事实冲突，以引擎事实为准。',
+      ...excerpts,
+    ].join('\n\n');
+  } catch {
+    return '';
+  }
 }
 
 function ziweiFacts(chart: ReturnType<typeof generateChart>) {
@@ -71,6 +109,7 @@ async function generateZiweiReport(order: Order, question?: string) {
     return chapters.map((title, index) => ({ title, body: bodies[index] }) satisfies ReportChapter);
   }
 
+  const datasetContext = await buildZiweiDatasetContext(chart);
   const system = [
     '你撰写简体中文紫微斗数个人命盘详批报告。严格依据引擎提供的本命盘面与大限事实解释传统象义，不自行重排命盘或编造未提供的星曜。',
     '结合倪海厦《天纪》与《紫微斗数全集》传统论断口径，区分本宫主星与空宫借星，把盘面事实与推演建议分开。',
@@ -78,7 +117,8 @@ async function generateZiweiReport(order: Order, question?: string) {
     '用户追问时，已生成的报告只提供上下文；报告与盘面冲突时，以本次引擎事实为准。',
     '本命盘面与大限事实：',
     JSON.stringify(facts),
-  ].join('\n\n');
+    datasetContext,
+  ].filter(Boolean).join('\n\n');
 
   const prompt = question
     ? '基于已生成的报告和命盘，200 至 450 字回答本次追问。报告：\n' + JSON.stringify(order.report) + '\n追问：\n' + question
@@ -125,7 +165,7 @@ async function generateReport(order: Order, question?: string) {
     return reportChapters.map((title, index) => ({ title, body: bodies[index] }));
   }
 
-  const datasetContext = process.env.COMMERCE_HEMING_DATASET === '1' && process.env.ZIWEI_DATASET_DIR
+  const datasetContext = hasDatasetConfigured() && process.env.COMMERCE_HEMING_DATASET !== '0'
     ? await buildHemingDatasetContext(chartA, chartB)
     : '';
   const system = [
