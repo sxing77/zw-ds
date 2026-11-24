@@ -140,6 +140,11 @@ export function resolveEffectiveLunarDate(
   day: number,
   policy: LunarMonthPolicy = 'prev-month',
 ): EffectiveLunarDate {
+  if (policy !== 'split' && policy !== 'next-month' && policy !== 'prev-month' && policy !== 'origin-month') {
+    throw new RangeError(
+      `leapMonth policy must be one of 'split' | 'next-month' | 'prev-month' | 'origin-month'; received ${String(policy)}`,
+    );
+  }
   const lunar = Solar.fromYmd(year, month, day).getLunar();
   const rawLunarMonth = Number(lunar.getMonth());
   const rawLunarDay = Number(lunar.getDay());
@@ -448,6 +453,9 @@ export function generateChart(
   const { year, month, day, hour, gender } = birthInfo;
   if (!Number.isInteger(hour) || hour < 0 || hour > 11) {
     throw new RangeError(`hour must be an integer branch index from 0 to 11; received ${hour}`);
+  }
+  if (gender !== 'male' && gender !== 'female') {
+    throw new RangeError(`gender must be 'male' or 'female'; received ${String(gender)}`);
   }
   // 公历日期必须真实存在：2 月 30 日、非闰年 2 月 29 日、4 月 31 日这类日期，
   // iztro 不报错而是顺延成下个月的头几天排盘，结果会和真实日期的盘重复。
