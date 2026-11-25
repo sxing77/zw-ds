@@ -27,7 +27,7 @@ export function salesEnabled() {
   if (localTest()) return true;
   try { paymentProvider(); }
   catch { return false; }
-  return Boolean(process.env.COMMERCE_SUPPORT_EMAIL) && googleLoginEnabled();
+  return Boolean(process.env.COMMERCE_SUPPORT_EMAIL);
 }
 
 export function siteOrigin(request: Request) {
